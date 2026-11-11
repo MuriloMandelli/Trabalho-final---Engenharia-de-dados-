@@ -1,0 +1,99 @@
+// Cole este conteúdo em https://dbdiagram.io/d para gerar o diagrama do banco de origem.
+
+Table regiao {
+  id int [pk]
+  sigla varchar(5) [not null]
+  nome varchar(50) [not null]
+  atualizado_em timestamp
+}
+
+Table uf {
+  id int [pk]
+  sigla char(2) [not null]
+  nome varchar(50) [not null]
+  regiao_id int [not null, ref: > regiao.id]
+  atualizado_em timestamp
+}
+
+Table mesorregiao {
+  id int [pk]
+  nome varchar(100) [not null]
+  uf_id int [not null, ref: > uf.id]
+  atualizado_em timestamp
+}
+
+Table microrregiao {
+  id int [pk]
+  nome varchar(100) [not null]
+  mesorregiao_id int [not null, ref: > mesorregiao.id]
+  atualizado_em timestamp
+}
+
+Table municipio {
+  id int [pk]
+  nome varchar(100) [not null]
+  microrregiao_id int [ref: > microrregiao.id]
+  atualizado_em timestamp
+}
+
+Table distrito {
+  id int [pk]
+  nome varchar(100) [not null]
+  municipio_id int [not null, ref: > municipio.id]
+  atualizado_em timestamp
+}
+
+Table area_ipca {
+  id int [pk]
+  nome varchar(100) [not null]
+  nivel varchar(50) [not null]
+  atualizado_em timestamp
+}
+
+Table categoria_produto {
+  id int [pk]
+  nome varchar(250) [not null]
+  nivel varchar(20) [not null]
+  atualizado_em timestamp
+}
+
+Table ipca_valor {
+  area_id int [not null, ref: > area_ipca.id]
+  categoria_id int [not null, ref: > categoria_produto.id]
+  periodo date [not null]
+  variacao_mensal numeric(12,4)
+  acumulado_ano numeric(12,4)
+  acumulado_12m numeric(12,4)
+  peso_mensal numeric(12,4)
+  atualizado_em timestamp
+
+  indexes {
+    (area_id, categoria_id, periodo) [pk]
+  }
+}
+
+Table inpc_valor {
+  area_id int [not null, ref: > area_ipca.id]
+  categoria_id int [not null, ref: > categoria_produto.id]
+  periodo date [not null]
+  variacao_mensal numeric(12,4)
+  acumulado_ano numeric(12,4)
+  acumulado_12m numeric(12,4)
+  peso_mensal numeric(12,4)
+  atualizado_em timestamp
+
+  indexes {
+    (area_id, categoria_id, periodo) [pk]
+  }
+}
+
+Table populacao_municipio {
+  municipio_id int [not null, ref: > municipio.id]
+  ano int [not null]
+  populacao int
+  atualizado_em timestamp
+
+  indexes {
+    (municipio_id, ano) [pk]
+  }
+}
