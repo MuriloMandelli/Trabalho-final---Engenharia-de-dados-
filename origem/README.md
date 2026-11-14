@@ -1,3 +1,5 @@
+## TODO - Ese arquivo agora e redundante
+
 # Banco de origem (IBGE)
 
 PostgreSQL com 11 tabelas montadas a partir de APIs públicas do IBGE.

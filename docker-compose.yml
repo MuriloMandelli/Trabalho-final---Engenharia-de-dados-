@@ -1,7 +1,7 @@
 services:
   origem:
     build:
-      context: .
+      context: ./origem/
       dockerfile: Dockerfile
 
     container_name: ibge_origem
