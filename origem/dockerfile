@@ -1,0 +1,32 @@
+FROM postgres:16
+
+# Install Python and pip
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    python3 \
+    python3-pip \
+    python3-venv && \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Install Python dependencies in a virtual environment
+COPY requirements.txt .
+
+RUN python3 -m venv /opt/venv && \
+    /opt/venv/bin/pip install --no-cache-dir -r requirements.txt
+
+ENV PATH="/opt/venv/bin:$PATH"
+ENV PYTHONUNBUFFERED=1
+
+# Copy SQL initialization file
+COPY sql/ /docker-entrypoint-initdb.d/
+
+# Copy Python scripts
+COPY scripts/ ./scripts/
+
+# Copy custom startup script
+COPY docker-entrypoint-custom.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint-custom.sh
+
+ENTRYPOINT ["docker-entrypoint-custom.sh"]

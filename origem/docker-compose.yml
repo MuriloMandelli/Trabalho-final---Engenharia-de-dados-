@@ -1,16 +1,23 @@
-# Banco de ORIGEM do projeto (PostgreSQL com dados do IBGE).
-# Uso: copie .env.example para .env e rode:  docker compose up -d
 services:
-  postgres:
-    image: postgres:16
-    container_name: ibge_postgres
-    env_file: .env
+  origem:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    container_name: ibge_origem
+
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: ibge_origem
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: 5432
+
     ports:
       - "5432:5432"
+
     volumes:
-      - pgdata:/var/lib/postgresql/data
-      # Executa os .sql desta pasta automaticamente na PRIMEIRA vez que o banco sobe
-      - ./sql:/docker-entrypoint-initdb.d
+      - postgres_data:/var/lib/postgresql/data
 
 volumes:
-  pgdata:
+  postgres_data:
