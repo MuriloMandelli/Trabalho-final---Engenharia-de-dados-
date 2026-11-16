@@ -1,4 +1,4 @@
-# Banco de ORIGEM do projeto (PostgreSQL com dados do IBGE).
+# Banco de ORIGEM do projeto (PostgreSQL com dados reais do IBGE).
 # Uso: copie .env.example para .env e rode:  docker compose up -d
 services:
   postgres:
