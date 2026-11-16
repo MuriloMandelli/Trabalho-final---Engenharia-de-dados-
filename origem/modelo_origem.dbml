@@ -1,99 +1,236 @@
-// Cole este conteúdo em https://dbdiagram.io/d para gerar o diagrama do banco de origem.
-
-Table regiao {
-  id int [pk]
-  sigla varchar(5) [not null]
-  nome varchar(50) [not null]
-  atualizado_em timestamp
-}
-
-Table uf {
-  id int [pk]
-  sigla char(2) [not null]
-  nome varchar(50) [not null]
-  regiao_id int [not null, ref: > regiao.id]
-  atualizado_em timestamp
-}
-
-Table mesorregiao {
-  id int [pk]
-  nome varchar(100) [not null]
-  uf_id int [not null, ref: > uf.id]
-  atualizado_em timestamp
-}
-
-Table microrregiao {
-  id int [pk]
-  nome varchar(100) [not null]
-  mesorregiao_id int [not null, ref: > mesorregiao.id]
-  atualizado_em timestamp
-}
-
-Table municipio {
-  id int [pk]
-  nome varchar(100) [not null]
-  microrregiao_id int [ref: > microrregiao.id]
-  atualizado_em timestamp
-}
-
-Table distrito {
-  id int [pk]
-  nome varchar(100) [not null]
-  municipio_id int [not null, ref: > municipio.id]
-  atualizado_em timestamp
-}
-
-Table area_ipca {
-  id int [pk]
-  nome varchar(100) [not null]
-  nivel varchar(50) [not null]
-  atualizado_em timestamp
-}
+// Gerado por scripts/gerar_dbml.py. Cole em https://dbdiagram.io/d
 
 Table categoria_produto {
-  id int [pk]
-  nome varchar(250) [not null]
+  id int [pk, not null]
+  codigo varchar(20)
+  descricao varchar(300)
+  nome varchar(300) [not null]
   nivel varchar(20) [not null]
-  atualizado_em timestamp
-}
-
-Table ipca_valor {
-  area_id int [not null, ref: > area_ipca.id]
-  categoria_id int [not null, ref: > categoria_produto.id]
-  periodo date [not null]
-  variacao_mensal numeric(12,4)
-  acumulado_ano numeric(12,4)
-  acumulado_12m numeric(12,4)
-  peso_mensal numeric(12,4)
-  atualizado_em timestamp
-
-  indexes {
-    (area_id, categoria_id, periodo) [pk]
-  }
+  atualizado_em timestamp [not null]
 }
 
 Table inpc_valor {
-  area_id int [not null, ref: > area_ipca.id]
+  localidade_id int [not null]
+  localidade_nome varchar(100) [not null]
   categoria_id int [not null, ref: > categoria_produto.id]
   periodo date [not null]
   variacao_mensal numeric(12,4)
   acumulado_ano numeric(12,4)
   acumulado_12m numeric(12,4)
   peso_mensal numeric(12,4)
-  atualizado_em timestamp
+  atualizado_em timestamp [not null]
 
   indexes {
-    (area_id, categoria_id, periodo) [pk]
+    (localidade_id, categoria_id, periodo) [pk]
   }
+}
+
+Table ipca_valor {
+  localidade_id int [not null]
+  localidade_nome varchar(100) [not null]
+  categoria_id int [not null, ref: > categoria_produto.id]
+  periodo date [not null]
+  variacao_mensal numeric(12,4)
+  acumulado_ano numeric(12,4)
+  acumulado_12m numeric(12,4)
+  peso_mensal numeric(12,4)
+  atualizado_em timestamp [not null]
+
+  indexes {
+    (localidade_id, categoria_id, periodo) [pk]
+  }
+}
+
+Table municipio {
+  id int [pk, not null]
+  nome varchar(120) [not null]
+  microrregiao_id int
+  microrregiao_nome varchar(120)
+  mesorregiao_id int
+  mesorregiao_nome varchar(120)
+  uf_id int
+  uf_sigla char(2)
+  uf_nome varchar(60)
+  regiao_id int
+  regiao_sigla varchar(5)
+  regiao_nome varchar(30)
+  regiao_imediata_id int
+  regiao_imediata_nome varchar(120)
+  regiao_intermediaria_id int
+  regiao_intermediaria_nome varchar(120)
+  atualizado_em timestamp [not null]
+}
+
+Table pib_municipio {
+  municipio_id int [not null, ref: > municipio.id]
+  ano int [not null]
+  produto_interno_bruto_a_precos_correntes numeric
+  participacao_do_produto_interno_bruto_a_precos_cor numeric
+  participacao_do_produto_interno_bruto_a_prec_552 numeric
+  participacao_do_produto_interno_bruto_a_prec_497 numeric
+  participacao_do_produto_interno_bruto_a_prec_530 numeric
+  participacao_do_produto_interno_bruto_a_prec_496 numeric
+  impostos_liquidos_de_subsidios_sobre_produtos_a_pr numeric
+  participacao_dos_impostos_liquidos_de_subsidios_so numeric
+  participacao_dos_impostos_liquidos_de_subsid_570 numeric
+  participacao_dos_impostos_liquidos_de_subsid_545 numeric
+  participacao_dos_impostos_liquidos_de_subsid_551 numeric
+  participacao_dos_impostos_liquidos_de_subsid_544 numeric
+  valor_adicionado_bruto_a_precos_correntes_total numeric
+  participacao_do_valor_adicionado_bruto_a_precos_co numeric
+  participacao_do_valor_adicionado_bruto_a_pre_554 numeric
+  participacao_do_valor_adicionado_bruto_a_pre_500 numeric
+  participacao_do_valor_adicionado_bruto_a_pre_546 numeric
+  participacao_do_valor_adicionado_bruto_a_pre_499 numeric
+  valor_adicionado_bruto_a_precos_correntes_da_agrop numeric
+  participacao_do_valor_adicionado_bruto_a_pre_516 numeric
+  participacao_do_valor_adicionado_bruto_a_pre_557 numeric
+  participacao_do_valor_adicionado_bruto_a_pre_556 numeric
+  participacao_do_valor_adicionado_bruto_a_pre_515 numeric
+  participacao_do_valor_adicionado_bruto_a_pre_547 numeric
+  participacao_do_valor_adicionado_bruto_a_pre_514 numeric
+  valor_adicionado_bruto_a_precos_correntes_da_indus numeric
+  participacao_do_valor_adicionado_bruto_a_pre_520 numeric
+  participacao_do_valor_adicionado_bruto_a_pre_559 numeric
+  participacao_do_valor_adicionado_bruto_a_pre_558 numeric
+  participacao_do_valor_adicionado_bruto_a_pre_519 numeric
+  participacao_do_valor_adicionado_bruto_a_pre_548 numeric
+  participacao_do_valor_adicionado_bruto_a_pre_518 numeric
+  valor_adicionado_bruto_a_precos_correntes_dos_serv numeric
+  participacao_do_valor_adicionado_bruto_a_pre_6574 numeric
+  participacao_do_valor_adicionado_bruto_a_pre_6571 numeric
+  participacao_do_valor_adicionado_bruto_a_pre_6570 numeric
+  participacao_do_valor_adicionado_bruto_a_pre_6572 numeric
+  participacao_do_valor_adicionado_bruto_a_pre_6569 numeric
+  participacao_do_valor_adicionado_bruto_a_pre_6573 numeric
+  valor_adicionado_bruto_a_precos_correntes_da_admin numeric
+  participacao_do_valor_adicionado_bruto_a_pre_528 numeric
+  participacao_do_valor_adicionado_bruto_a_pre_563 numeric
+  participacao_do_valor_adicionado_bruto_a_pre_562 numeric
+  participacao_do_valor_adicionado_bruto_a_pre_527 numeric
+  participacao_do_valor_adicionado_bruto_a_pre_550 numeric
+  participacao_do_valor_adicionado_bruto_a_pre_526 numeric
+  atualizado_em timestamp [not null]
+
+  indexes {
+    (municipio_id, ano) [pk]
+  }
+}
+
+Table pnad_domicilio {
+  domicilio_id varchar(40) [pk, not null]
+  ano int
+  trimestre int
+  uf text
+  capital text
+  rm_ride text
+  upa text
+  estrato text
+  v1008 text
+  v1014 text
+  v1022 text
+  v1023 text
+  v2001 int
+  atualizado_em timestamp [not null]
+}
+
+Table pnad_morador {
+  morador_id varchar(60) [pk, not null]
+  domicilio_id varchar(40) [not null, ref: > pnad_domicilio.domicilio_id]
+  v2003 int
+  v2005 text
+  v2007 text
+  v2009 int
+  v2010 text
+  v3001 text
+  v3002 text
+  v3009a text
+  vd3004 text
+  vd3005 int
+  vd4001 text
+  vd4002 text
+  v1027 numeric
+  v1028 numeric
+  v1029 numeric
+  atualizado_em timestamp [not null]
+}
+
+Table pnad_ocupacao {
+  morador_id varchar(60) [pk, not null, ref: > pnad_morador.morador_id]
+  v4009 int
+  v4010 text
+  v4012 text
+  v4013 text
+  v4029 text
+  v4032 text
+  v4039 int
+  vd4009 text
+  vd4010 text
+  vd4011 text
+  vd4012 text
+  vd4016 numeric
+  vd4017 numeric
+  vd4019 numeric
+  vd4020 numeric
+  vd4031 int
+  atualizado_em timestamp [not null]
 }
 
 Table populacao_municipio {
   municipio_id int [not null, ref: > municipio.id]
   ano int [not null]
   populacao int
-  atualizado_em timestamp
+  atualizado_em timestamp [not null]
 
   indexes {
     (municipio_id, ano) [pk]
+  }
+}
+
+Table producao_agricola {
+  municipio_id int [not null, ref: > municipio.id]
+  ano int [not null]
+  cultura_id int [not null]
+  cultura_nome varchar(250)
+  area_plantada_ou_destinada_a_colheita numeric
+  area_plantada_ou_destinada_a_colheita_percentual_d numeric
+  area_colhida numeric
+  area_colhida_percentual_do_total_geral numeric
+  quantidade_produzida numeric
+  rendimento_medio_da_producao numeric
+  valor_da_producao numeric
+  valor_da_producao_percentual_do_total_geral numeric
+  atualizado_em timestamp [not null]
+
+  indexes {
+    (municipio_id, ano, cultura_id) [pk]
+  }
+}
+
+Table producao_origem_animal {
+  municipio_id int [not null, ref: > municipio.id]
+  ano int [not null]
+  produto_id int [not null]
+  produto_nome varchar(250)
+  producao_de_origem_animal numeric
+  valor_da_producao numeric
+  valor_da_producao_percentual_do_total_geral numeric
+  atualizado_em timestamp [not null]
+
+  indexes {
+    (municipio_id, ano, produto_id) [pk]
+  }
+}
+
+Table rebanho_municipio {
+  municipio_id int [not null, ref: > municipio.id]
+  ano int [not null]
+  tipo_rebanho_id int [not null]
+  tipo_rebanho_nome varchar(250)
+  efetivo_dos_rebanhos numeric
+  atualizado_em timestamp [not null]
+
+  indexes {
+    (municipio_id, ano, tipo_rebanho_id) [pk]
   }
 }
