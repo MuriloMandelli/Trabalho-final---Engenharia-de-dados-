@@ -1,5 +1,8 @@
 """Carrega IPCA (tabela 7060) ou INPC (tabela 7063) do IBGE para o PostgreSQL.
 
+Por padrão traz só o BRASIL (todas as categorias de produtos), o que mantém o volume
+em torno de 15 mil linhas por tabela. Use --localidades para ampliar.
+
 Uso (dentro da pasta origem):
     # Carga inicial: últimos 36 meses, deixando o ÚLTIMO mês de fora (para a demo incremental)
     python scripts/carga_indice_precos.py ipca --reservar 1
@@ -7,11 +10,7 @@ Uso (dentro da pasta origem):
     # Carga incremental: traz apenas o próximo mês que ainda não está no banco
     python scripts/carga_indice_precos.py ipca --proximo
 
-    # Carga completa, sem reservar nada
-    python scripts/carga_indice_precos.py ipca
-
-Troque "ipca" por "inpc" para o outro índice.
-Pode rodar várias vezes: meses já carregados são pulados.
+Troque "ipca" por "inpc" para o outro índice. Pode rodar várias vezes.
 """
 import argparse
 import re
@@ -23,7 +22,6 @@ from psycopg2.extras import execute_values
 from comum import conectar, converter, get
 
 API = "https://servicodados.ibge.gov.br/api/v3/agregados"
-LOCALIDADES = "N1[all]|N6[all]|N7[all]"  # Brasil | municípios pesquisados | regiões metropolitanas
 
 INDICES = {
     "ipca": {"agregado": 7060, "tabela": "ipca_valor"},
@@ -59,18 +57,26 @@ def periodos_disponiveis(agregado):
     return sorted(p["id"] for p in get(f"{API}/{agregado}/periodos"))
 
 
-def buscar_mes(agregado, periodo, variaveis, classificacao):
+def buscar_mes(agregado, periodo, variaveis, classificacao, localidades):
     url = f"{API}/{agregado}/periodos/{periodo}/variaveis/{'|'.join(variaveis)}"
-    params = {"localidades": LOCALIDADES, "classificacao": f"{classificacao}[all]"}
+    params = {"localidades": localidades, "classificacao": f"{classificacao}[all]"}
     return get(url, params)
 
 
+def separar_codigo(nome):
+    """'1101002.Arroz' -> ('1101002', 'Arroz'). 'Índice geral' -> (None, 'Índice geral')."""
+    m = re.match(r"^(\d+)\.(.*)$", nome)
+    if m:
+        return m.group(1), m.group(2).strip()
+    return None, nome.strip()
+
+
 def nivel_categoria(nome):
-    """Deduz o nível pelo código no início do nome: '1.' grupo, '11.' subgrupo, '1101.' item, '1101002.' subitem."""
-    m = re.match(r"^(\d+)\.", nome)
-    if not m:
+    """Nível pelo tamanho do código: 1 grupo, 2 subgrupo, 4 item, 7 subitem."""
+    codigo, _ = separar_codigo(nome)
+    if codigo is None:
         return "geral" if "geral" in nome.lower() else "indefinido"
-    return {1: "grupo", 2: "subgrupo", 4: "item", 7: "subitem"}.get(len(m.group(1)), "indefinido")
+    return {1: "grupo", 2: "subgrupo", 4: "item", 7: "subitem"}.get(len(codigo), "indefinido")
 
 
 def transformar(resposta, variaveis, periodo):
@@ -84,7 +90,7 @@ def transformar(resposta, variaveis, periodo):
             for serie in res["series"]:
                 loc = serie["localidade"]
                 area_id = int(loc["id"])
-                areas[area_id] = (loc["nome"], loc["nivel"]["nome"])
+                areas[area_id] = loc["nome"]
                 valor = converter(serie["serie"].get(periodo))
                 fatos.setdefault((area_id, int(cat_id)), {})[coluna] = valor
     return areas, categorias, fatos
@@ -93,28 +99,29 @@ def transformar(resposta, variaveis, periodo):
 def gravar(conn, tabela, periodo, areas, categorias, fatos):
     data = date(int(periodo[:4]), int(periodo[4:6]), 1)
     linhas = [
-        (a, c, data, m.get("variacao_mensal"), m.get("acumulado_ano"),
+        (a, areas[a], c, data, m.get("variacao_mensal"), m.get("acumulado_ano"),
          m.get("acumulado_12m"), m.get("peso_mensal"))
         for (a, c), m in fatos.items()
     ]
+    cats = []
+    for i, nome in categorias.items():
+        codigo, descricao = separar_codigo(nome)
+        cats.append((i, nome, nivel_categoria(nome), codigo, descricao))
     with conn.cursor() as cur:
         execute_values(
             cur,
-            "INSERT INTO area_ipca (id, nome, nivel) VALUES %s ON CONFLICT (id) DO NOTHING",
-            [(i, nome, nivel) for i, (nome, nivel) in areas.items()],
-        )
-        execute_values(
-            cur,
-            "INSERT INTO categoria_produto (id, nome, nivel) VALUES %s ON CONFLICT (id) DO NOTHING",
-            [(i, nome, nivel_categoria(nome)) for i, nome in categorias.items()],
+            "INSERT INTO categoria_produto (id, nome, nivel, codigo, descricao) VALUES %s "
+            "ON CONFLICT (id) DO NOTHING",
+            cats,
         )
         execute_values(
             cur,
             f"""
             INSERT INTO {tabela}
-                (area_id, categoria_id, periodo, variacao_mensal, acumulado_ano, acumulado_12m, peso_mensal)
+                (localidade_id, localidade_nome, categoria_id, periodo,
+                 variacao_mensal, acumulado_ano, acumulado_12m, peso_mensal)
             VALUES %s
-            ON CONFLICT (area_id, categoria_id, periodo) DO UPDATE SET
+            ON CONFLICT (localidade_id, categoria_id, periodo) DO UPDATE SET
                 variacao_mensal = EXCLUDED.variacao_mensal,
                 acumulado_ano   = EXCLUDED.acumulado_ano,
                 acumulado_12m   = EXCLUDED.acumulado_12m,
@@ -138,6 +145,8 @@ def main():
                         help="quantos meses finais NÃO carregar (guardados para a demo incremental)")
     parser.add_argument("--proximo", action="store_true",
                         help="carrega só o próximo mês ainda ausente no banco")
+    parser.add_argument("--localidades", default="N1[all]",
+                        help="padrão: só o Brasil. Ex.: 'N1[all]|N7[all]' inclui regiões metropolitanas")
     args = parser.parse_args()
 
     cfg = INDICES[args.indice]
@@ -165,7 +174,7 @@ def main():
 
     for periodo in pendentes:
         print(f"Baixando {args.indice.upper()} {periodo}...")
-        resposta = buscar_mes(cfg["agregado"], periodo, variaveis, classificacao)
+        resposta = buscar_mes(cfg["agregado"], periodo, variaveis, classificacao, args.localidades)
         areas, categorias, fatos = transformar(resposta, variaveis, periodo)
         qtd = gravar(conn, cfg["tabela"], periodo, areas, categorias, fatos)
         print(f"  {periodo}: {qtd} linhas gravadas")

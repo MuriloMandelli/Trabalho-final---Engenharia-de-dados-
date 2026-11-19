@@ -1,6 +1,8 @@
 """Funções compartilhadas pelos scripts de carga."""
 import os
+import re
 import time
+import unicodedata
 from pathlib import Path
 
 import psycopg2
@@ -9,6 +11,8 @@ from dotenv import load_dotenv
 
 # Lê o arquivo origem/.env (se existir)
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
+
+RAIZ = Path(__file__).resolve().parent.parent
 
 
 def conectar():
@@ -44,3 +48,12 @@ def converter(valor):
         return float(valor)
     except (TypeError, ValueError):
         return None
+
+
+def slug(texto, limite=50):
+    """'Área plantada (ha)' -> 'area_plantada_ha' (nome de coluna seguro)."""
+    t = unicodedata.normalize("NFKD", str(texto)).encode("ascii", "ignore").decode()
+    t = re.sub(r"[^a-zA-Z0-9]+", "_", t).strip("_").lower()
+    if not t or t[0].isdigit():
+        t = "v_" + t
+    return t[:limite].rstrip("_")

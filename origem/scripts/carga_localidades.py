@@ -1,55 +1,55 @@
-"""Carrega regiões, UFs, mesorregiões, microrregiões, municípios e distritos.
 
-Uso (dentro da pasta origem):  python scripts/carga_localidades.py
-Pode rodar várias vezes: não duplica dados (ON CONFLICT DO NOTHING).
-"""
 from psycopg2.extras import execute_values
 
 from comum import conectar, get
 
-BASE = "https://servicodados.ibge.gov.br/api/v1/localidades"
+URL = "https://servicodados.ibge.gov.br/api/v1/localidades/municipios"
+
+COLUNAS = [
+    "id", "nome",
+    "microrregiao_id", "microrregiao_nome",
+    "mesorregiao_id", "mesorregiao_nome",
+    "uf_id", "uf_sigla", "uf_nome",
+    "regiao_id", "regiao_sigla", "regiao_nome",
+    "regiao_imediata_id", "regiao_imediata_nome",
+    "regiao_intermediaria_id", "regiao_intermediaria_nome",
+]
 
 
-def carregar(conn, tabela, colunas, linhas):
-    sql = (
-        f"INSERT INTO {tabela} ({', '.join(colunas)}) VALUES %s "
-        "ON CONFLICT (id) DO NOTHING"
+def achatar(m):
+    """Transforma o JSON aninhado de um município em uma linha plana."""
+    micro = m.get("microrregiao") or {}
+    meso = micro.get("mesorregiao") or {}
+    imediata = m.get("regiao-imediata") or {}
+    intermediaria = imediata.get("regiao-intermediaria") or {}
+    uf = meso.get("UF") or intermediaria.get("UF") or {}
+    regiao = uf.get("regiao") or {}
+    return (
+        m["id"], m["nome"],
+        micro.get("id"), micro.get("nome"),
+        meso.get("id"), meso.get("nome"),
+        uf.get("id"), uf.get("sigla"), uf.get("nome"),
+        regiao.get("id"), regiao.get("sigla"), regiao.get("nome"),
+        imediata.get("id"), imediata.get("nome"),
+        intermediaria.get("id"), intermediaria.get("nome"),
     )
-    with conn.cursor() as cur:
-        execute_values(cur, sql, linhas, page_size=2000)
-    conn.commit()
-    print(f"{tabela}: {len(linhas)} registros recebidos da API")
 
 
 def main():
+    linhas = [achatar(m) for m in get(URL)]
     conn = conectar()
-
-    # A ordem importa: primeiro os "pais", depois os "filhos"
-    carregar(conn, "regiao", ["id", "sigla", "nome"],
-             [(r["id"], r["sigla"], r["nome"]) for r in get(f"{BASE}/regioes")])
-
-    carregar(conn, "uf", ["id", "sigla", "nome", "regiao_id"],
-             [(e["id"], e["sigla"], e["nome"], e["regiao"]["id"])
-              for e in get(f"{BASE}/estados")])
-
-    carregar(conn, "mesorregiao", ["id", "nome", "uf_id"],
-             [(m["id"], m["nome"], m["UF"]["id"])
-              for m in get(f"{BASE}/mesorregioes")])
-
-    carregar(conn, "microrregiao", ["id", "nome", "mesorregiao_id"],
-             [(m["id"], m["nome"], m["mesorregiao"]["id"])
-              for m in get(f"{BASE}/microrregioes")])
-
-    carregar(conn, "municipio", ["id", "nome", "microrregiao_id"],
-             [(m["id"], m["nome"], (m.get("microrregiao") or {}).get("id"))
-              for m in get(f"{BASE}/municipios")])
-
-    carregar(conn, "distrito", ["id", "nome", "municipio_id"],
-             [(d["id"], d["nome"], d["municipio"]["id"])
-              for d in get(f"{BASE}/distritos")])
-
+    with conn.cursor() as cur:
+        execute_values(
+            cur,
+            f"INSERT INTO municipio ({', '.join(COLUNAS)}) VALUES %s ON CONFLICT (id) DO NOTHING",
+            linhas,
+            page_size=2000,
+        )
+        cur.execute("SELECT count(*) FROM municipio")
+        total = cur.fetchone()[0]
+    conn.commit()
     conn.close()
-    print("Carga de localidades concluída.")
+    print(f"municipio: {len(linhas)} recebidos da API, {total} na tabela")
 
 
 if __name__ == "__main__":

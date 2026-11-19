@@ -1,45 +1,37 @@
 -- =====================================================================
--- Consultas de VALIDAÇÃO do banco de origem (rode no DBeaver)
--- Guarde os resultados (print) para a documentação do projeto.
+-- Consultas de VALIDAÇÃO do banco de origem (rode no DBeaver, uma por vez: Ctrl+Enter)
 -- =====================================================================
 
--- 1) Quantidade de tabelas (requisito: mínimo 10)
-SELECT count(*) AS qtd_tabelas
+-- 1) Linhas por tabela
+SELECT table_name AS tabela,
+       (xpath('/row/c/text()',
+              query_to_xml(format('SELECT count(*) AS c FROM %I.%I', table_schema, table_name), false, true, '')))[1]::text::int AS linhas
 FROM information_schema.tables
-WHERE table_schema = 'public' AND table_type = 'BASE TABLE';
-
--- 2) Linhas por tabela (requisito: 10.000+ nas tabelas principais)
-SELECT 'regiao' AS tabela, count(*) AS linhas FROM regiao
-UNION ALL SELECT 'uf', count(*) FROM uf
-UNION ALL SELECT 'mesorregiao', count(*) FROM mesorregiao
-UNION ALL SELECT 'microrregiao', count(*) FROM microrregiao
-UNION ALL SELECT 'municipio', count(*) FROM municipio
-UNION ALL SELECT 'distrito', count(*) FROM distrito
-UNION ALL SELECT 'area_ipca', count(*) FROM area_ipca
-UNION ALL SELECT 'categoria_produto', count(*) FROM categoria_produto
-UNION ALL SELECT 'ipca_valor', count(*) FROM ipca_valor
-UNION ALL SELECT 'inpc_valor', count(*) FROM inpc_valor
-UNION ALL SELECT 'populacao_municipio', count(*) FROM populacao_municipio
+WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
 ORDER BY linhas DESC;
 
--- 3) Distribuição de datas nos últimos 3 anos (requisito: 36 meses)
-SELECT 'ipca_valor' AS tabela, min(periodo) AS primeiro_mes, max(periodo) AS ultimo_mes,
-       count(DISTINCT periodo) AS meses
-FROM ipca_valor
+-- 2) Distribuição de datas (últimos 3 anos)
+SELECT 'ipca_valor' AS tabela, min(periodo) AS primeiro, max(periodo) AS ultimo, count(DISTINCT periodo) AS meses FROM ipca_valor
 UNION ALL
 SELECT 'inpc_valor', min(periodo), max(periodo), count(DISTINCT periodo) FROM inpc_valor;
 
--- 4) Anos de população carregados
-SELECT ano, count(*) AS municipios FROM populacao_municipio GROUP BY ano ORDER BY ano;
+SELECT 'populacao_municipio' AS tabela, ano, count(*) AS linhas FROM populacao_municipio GROUP BY ano
+UNION ALL SELECT 'pib_municipio', ano, count(*) FROM pib_municipio GROUP BY ano
+UNION ALL SELECT 'producao_agricola', ano, count(*) FROM producao_agricola GROUP BY ano
+UNION ALL SELECT 'rebanho_municipio', ano, count(*) FROM rebanho_municipio GROUP BY ano
+UNION ALL SELECT 'producao_origem_animal', ano, count(*) FROM producao_origem_animal GROUP BY ano
+ORDER BY tabela, ano;
 
--- 5) Níveis das categorias de produto (confere se a classificação por nível fez sentido)
+SELECT ano, trimestre, count(*) AS domicilios FROM pnad_domicilio GROUP BY ano, trimestre ORDER BY ano, trimestre;
+
+-- 3) Níveis das categorias de produto (confere a classificação por nível)
 SELECT nivel, count(*) FROM categoria_produto GROUP BY nivel ORDER BY nivel;
 
 -- ---------------------------------------------------------------------
--- NORMALIZAÇÃO
+-- NORMALIZAÇÃO E INTEGRIDADE
 -- ---------------------------------------------------------------------
 
--- 6) Tabelas SEM chave primária (esperado: nenhuma linha)
+-- 4) Tabelas SEM chave primária
 SELECT t.table_name
 FROM information_schema.tables t
 LEFT JOIN information_schema.table_constraints c
@@ -47,26 +39,21 @@ LEFT JOIN information_schema.table_constraints c
       AND c.constraint_type = 'PRIMARY KEY'
 WHERE t.table_schema = 'public' AND t.table_type = 'BASE TABLE' AND c.constraint_name IS NULL;
 
--- 7) Chaves estrangeiras existentes (documente o resultado)
-SELECT tc.table_name AS tabela_filha, kcu.column_name AS coluna,
-       ccu.table_name AS tabela_pai, ccu.column_name AS coluna_pai
-FROM information_schema.table_constraints tc
-JOIN information_schema.key_column_usage kcu
-  ON tc.constraint_name = kcu.constraint_name AND tc.table_schema = kcu.table_schema
-JOIN information_schema.constraint_column_usage ccu
-  ON ccu.constraint_name = tc.constraint_name AND ccu.table_schema = tc.table_schema
-WHERE tc.constraint_type = 'FOREIGN KEY' AND tc.table_schema = 'public'
-ORDER BY tabela_filha, coluna;
+-- 5) Chaves estrangeiras existentes
+SELECT conrelid::regclass AS tabela_filha, a.attname AS coluna,
+       confrelid::regclass AS tabela_pai, af.attname AS coluna_pai
+FROM pg_constraint c
+JOIN LATERAL unnest(c.conkey, c.confkey) AS k(attnum, fattnum) ON true
+JOIN pg_attribute a  ON a.attrelid = c.conrelid  AND a.attnum = k.attnum
+JOIN pg_attribute af ON af.attrelid = c.confrelid AND af.attnum = k.fattnum
+WHERE c.contype = 'f' AND c.connamespace = 'public'::regnamespace
+ORDER BY 1, 2;
 
--- 8) Linhas "órfãs" nos fatos (esperado: 0 em todas)
-SELECT 'ipca sem area' AS teste, count(*) FROM ipca_valor f LEFT JOIN area_ipca a ON a.id = f.area_id WHERE a.id IS NULL
-UNION ALL SELECT 'ipca sem categoria', count(*) FROM ipca_valor f LEFT JOIN categoria_produto c ON c.id = f.categoria_id WHERE c.id IS NULL
-UNION ALL SELECT 'inpc sem area', count(*) FROM inpc_valor f LEFT JOIN area_ipca a ON a.id = f.area_id WHERE a.id IS NULL
-UNION ALL SELECT 'populacao sem municipio', count(*) FROM populacao_municipio f LEFT JOIN municipio m ON m.id = f.municipio_id WHERE m.id IS NULL;
+-- 6) Moradores sem domicílio e ocupações sem morador
+SELECT (SELECT count(*) FROM pnad_morador m LEFT JOIN pnad_domicilio d ON d.domicilio_id = m.domicilio_id WHERE d.domicilio_id IS NULL) AS moradores_orfaos,
+       (SELECT count(*) FROM pnad_ocupacao o LEFT JOIN pnad_morador m ON m.morador_id = o.morador_id WHERE m.morador_id IS NULL) AS ocupacoes_orfas;
 
--- 9) Duplicidade de negócio (esperado: nenhuma linha)
-SELECT area_id, categoria_id, periodo, count(*)
-FROM ipca_valor GROUP BY area_id, categoria_id, periodo HAVING count(*) > 1;
-
--- 10) Municípios sem microrregião (informativo: pode haver alguns)
-SELECT count(*) AS municipios_sem_microrregiao FROM municipio WHERE microrregiao_id IS NULL;
+-- 7) Amostra dos dados
+SELECT * FROM municipio LIMIT 5;
+SELECT * FROM pib_municipio LIMIT 5;
+SELECT * FROM pnad_morador LIMIT 5;
