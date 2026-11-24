@@ -7,6 +7,11 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.11"
+jupyterlab = "^4.6.6"
+boto3 = "^1.44.4"
+psycopg2 = "^2.9.13"
+pyspark = "4.0.0"
+delta-spark = "4.0.0"
 
 
 [tool.poetry.group.dev.dependencies]
