@@ -1,14 +1,11 @@
-site_name: Engenharia de Dados SATC
-site_description: Documentacao do projeto <nome do projeto>
-site_author: Jorge Luiz da Silva
-site_url: https://jlsilva01.github.io/projeto-ed-satc
-site_favicon: images/favicon.png
-site_logo: images/logo.png
-site_keywords: Engenharia de Dados, Engenharia de Software, SATC, Python, Pyspark, Delta, Jupyter, Git, GitHub, Markdown, MkDocs, Material Theme
+site_name: Engenharia de Dados - IBGE
+site_description: Documentação do pipeline de engenharia de dados com dados públicos do IBGE (UNISATC)
+site_author: Augusto Benedetti, Murilo Mandelli, Realdo Justino Junior, André Cittadin e Jorge Antônio
+site_url: https://murilomandelli.github.io/Trabalho-final---Engenharia-de-dados-/
 
-repo_name: projeto-ed-satc
-repo_url: http://github.com/jlsilva01/projeto-ed-satc
-edit_uri: edit/master/docs/
+repo_name: Trabalho-final---Engenharia-de-dados-
+repo_url: https://github.com/MuriloMandelli/Trabalho-final---Engenharia-de-dados-
+edit_uri: edit/main/docs/
 
 docs_dir: docs
 
@@ -27,42 +24,27 @@ theme:
     - navigation.tabs
     - navigation.tabs.sticky
     - navigation.path
-    #- navigation.paging
-    #- navigation.expand
     - navigation.top
-    #- navigation.sidebar
     - navigation.next-prev
-    #- navigation.toc
-    #- navigation.scrollspy
     - search
   icon:
     repo: fontawesome/brands/github
 
-hide:
-  - search
-  - navigation
-  - toc
-
 extra:
   social:
-    - icon: fontawesome/brands/mastodon 
-      link: https://jl2tech.com
+    - icon: fontawesome/brands/github
+      link: https://github.com/MuriloMandelli/Trabalho-final---Engenharia-de-dados-
   generator: false
 
-copyright: Copyright &copy; 2024 - <a href="#" target="_blank"><b>Jorge Luiz da Silva</b></a> - Todos os direitos reservados.
+copyright: Copyright &copy; 2026 - Equipe IBGE - Engenharia de Dados UNISATC
 
 extra_css:
   - stylesheets/extra.css
 
-extra_javascript:
-  - javascripts/extra.js
-
 plugins:
   - search
-  - mkdocstrings:
-      default_handler: python
 
-markdown_extensions: 
+markdown_extensions:
   - pymdownx.critic
   - pymdownx.caret
   - pymdownx.keys
@@ -71,6 +53,7 @@ markdown_extensions:
   - admonition
   - pymdownx.details
   - pymdownx.superfences
+  - tables
   - attr_list
   - md_in_html
   - pymdownx.emoji:
