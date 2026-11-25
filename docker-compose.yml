@@ -103,6 +103,7 @@ services:
       "
     volumes:
       - ./scripts/dags:/opt/airflow/dags
+      - ./scripts:/opt/airflow/scripts
       - ./src:/opt/airflow/src
       - ./airflow_logs:/opt/airflow/logs
     networks:
@@ -132,6 +133,7 @@ services:
     command: webserver
     volumes:
       - ./scripts/dags:/opt/airflow/dags
+      - ./scripts:/opt/airflow/scripts
       - ./src:/opt/airflow/src
       - ./airflow_logs:/opt/airflow/logs
     networks:
@@ -159,6 +161,7 @@ services:
     command: scheduler
     volumes:
       - ./scripts/dags:/opt/airflow/dags
+      - ./scripts:/opt/airflow/scripts
       - ./src:/opt/airflow/src
       - ./airflow_logs:/opt/airflow/logs
     networks:
