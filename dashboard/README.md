@@ -18,13 +18,26 @@ sem precisar de Spark para visualizar.
 1. **População total** (`economia_municipal`)
 2. **Valor da produção agrícola (R$)** (`agropecuaria_municipal`)
 
-Filtros: ano, região e UF.
+Filtros: região e UF.
 
 ## Como executar
 
 Pré-requisito: o pipeline já precisa ter sido executado (buckets → landing →
-bronze → silver → gold), com o MinIO no ar via `docker compose up -d` na raiz
-do projeto.
+bronze → silver → gold) para popular a camada gold no MinIO.
+
+### Com Docker (recomendado)
+
+O dashboard já está no `docker-compose.yml` da raiz do projeto e sobe junto com
+o MinIO:
+
+```bash
+docker compose up -d
+```
+
+Dentro do Docker ele acessa o MinIO pela rede interna (`http://minio:9000`), sem
+depender de nada instalado na máquina.
+
+### Local (sem Docker)
 
 ```bash
 cd dashboard
