@@ -1,6 +1,6 @@
 import os
 
-MINIO_ENDPOINT = os.getenv("MINIO_ENDPOINT", "http://minio:9000")
+MINIO_ENDPOINT = os.getenv("MINIO_ENDPOINT", "http://lakehouse_minio:9000")
 MINIO_ACCESS_KEY = os.getenv("MINIO_ROOT_USER", "minioadmin")
 MINIO_SECRET_KEY = os.getenv("MINIO_ROOT_PASSWORD", "minioadmin123")
 
@@ -11,14 +11,10 @@ POSTGRES_USER = os.getenv("POSTGRES_USER", "admin")
 POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "admin")
 
 from pyspark.sql import SparkSession
-from delta import configure_spark_with_delta_pip
-
-packages = ["org.apache.hadoop:hadoop-aws:3.4.0"]
 
 builder = (
     SparkSession.builder
     .appName("MinIO-Delta-Lake")
-    .master("local[*]")
     .config("spark.hadoop.fs.s3a.endpoint", MINIO_ENDPOINT)
     .config("spark.hadoop.fs.s3a.endpoint.region", "us-east-1")
     .config("spark.hadoop.fs.s3a.access.key", MINIO_ACCESS_KEY)
@@ -30,10 +26,7 @@ builder = (
     .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog")
 )
 
-spark = configure_spark_with_delta_pip(
-    builder,
-    extra_packages=packages
-).getOrCreate()
+spark = builder.getOrCreate()
 
 caminho_landing = 's3a://landing'
 

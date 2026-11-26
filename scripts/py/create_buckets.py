@@ -1,9 +1,10 @@
+import os
 import boto3
 from botocore.config import Config
 
-MINIO_ENDPOINT = MINIO_ENDPOINT
-MINIO_ACCESS_KEY = MINIO_ACCESS_KEY
-MINIO_SECRET_KEY = MINIO_SECRET_KEY
+MINIO_ENDPOINT = os.getenv("MINIO_ENDPOINT", "http://lakehouse_minio:9000")
+MINIO_ACCESS_KEY = os.getenv("MINIO_ROOT_USER") or os.getenv("MINIO_ACCESS_KEY", "minioadmin")
+MINIO_SECRET_KEY = os.getenv("MINIO_ROOT_PASSWORD") or os.getenv("MINIO_SECRET_KEY", "minioadmin123")
 
 s3_client = boto3.client(
     "s3",

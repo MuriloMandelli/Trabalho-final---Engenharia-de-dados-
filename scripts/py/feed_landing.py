@@ -1,10 +1,18 @@
+import os
 import psycopg2
+
+POSTGRES_HOST = os.getenv("POSTGRES_HOST", "ibge_postgres")
+POSTGRES_PORT = int(os.getenv("POSTGRES_PORT", "5432"))
+POSTGRES_DB = os.getenv("POSTGRES_DB", "ibge_origem")
+POSTGRES_USER = os.getenv("POSTGRES_USER", "admin")
+POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "admin")
 
 conn = psycopg2.connect(
     dbname=POSTGRES_DB,
     user=POSTGRES_USER,
     password=POSTGRES_PASSWORD,
-    host=POSTGRES_HOST
+    host=POSTGRES_HOST,
+    port=POSTGRES_PORT,
 )
 
 import csv
@@ -37,9 +45,9 @@ conn.close()
 import boto3
 from botocore.config import Config
 
-MINIO_ENDPOINT = MINIO_ENDPOINT
-MINIO_ACCESS_KEY = MINIO_ACCESS_KEY
-MINIO_SECRET_KEY = MINIO_SECRET_KEY
+MINIO_ENDPOINT = os.getenv("MINIO_ENDPOINT") or "http://lakehouse_minio:9000"
+MINIO_ACCESS_KEY = os.getenv("MINIO_ROOT_USER") or os.getenv("MINIO_ACCESS_KEY", "minioadmin")
+MINIO_SECRET_KEY = os.getenv("MINIO_ROOT_PASSWORD") or os.getenv("MINIO_SECRET_KEY", "minioadmin123")
 
 s3_client = boto3.client(
     "s3",
