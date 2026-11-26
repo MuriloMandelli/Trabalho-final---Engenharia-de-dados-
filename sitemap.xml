@@ -2,10 +2,18 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://murilomandelli.github.io/Trabalho-final---Engenharia-de-dados-/</loc>
-         <lastmod>2026-11-25</lastmod>
+         <lastmod>2026-11-26</lastmod>
+    </url>
+    <url>
+         <loc>https://murilomandelli.github.io/Trabalho-final---Engenharia-de-dados-/banco-origem/</loc>
+         <lastmod>2026-11-26</lastmod>
+    </url>
+    <url>
+         <loc>https://murilomandelli.github.io/Trabalho-final---Engenharia-de-dados-/dashboard/</loc>
+         <lastmod>2026-11-26</lastmod>
     </url>
     <url>
          <loc>https://murilomandelli.github.io/Trabalho-final---Engenharia-de-dados-/sobre/</loc>
-         <lastmod>2026-11-25</lastmod>
+         <lastmod>2026-11-26</lastmod>
     </url>
 </urlset>
